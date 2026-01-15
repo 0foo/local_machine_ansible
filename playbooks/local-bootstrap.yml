@@ -1,0 +1,140 @@
+- name: Configure local user environment
+  hosts: nixos
+  become: false
+
+  tasks:
+  - name: Ensure common directories exist
+    file:
+      path: "{{ item }}"
+      state: directory
+    loop:
+    - "{{ lookup('env','HOME') }}/bin"
+    - "{{ lookup('env','HOME') }}/projects"
+    - "{{ lookup('env','HOME') }}/.config"
+
+  - name: Install user dotfiles
+    copy:
+      src: ../files/bashrc
+      dest: "{{ lookup('env','HOME') }}/.bashrc"
+      mode: "0644"
+
+  - name: Add bash functions and aliases
+    blockinfile:
+      path: "{{ lookup('env','HOME') }}/.bash_aliases"
+      create: true
+      marker: "# {mark} ANSIBLE MANAGED BLOCK: bash functions"
+      block: |
+        # sort by size (largest first), include dotfiles, human readable
+        alias ll='ls -lahS'
+
+        git_go() {
+          git add . && git commit -m "save state" && git push
+        }
+
+        git_ssh_key_generate() {
+          ssh-keygen -t ed25519
+        }
+
+        ssh_add_keyfile() {
+          eval "$(ssh-agent -s)"
+          ssh-add "$1"
+        }
+
+        wipe_history_full() {
+          : > ~/.bash_history
+          history -c
+        }
+
+  - name: Ensure local bin directory exists
+    file:
+      path: "{{ lookup('env','HOME') }}/.local/bin"
+      state: directory
+      mode: "0755"
+
+  - name: Copy hyperjump script into ~/.local/bin
+    copy:
+      src: ../files/hyperjump/hyperjump.sh
+      dest: "{{ lookup('env','HOME') }}/.local/bin/hyperjump.sh"
+      mode: "0755"
+
+  - name: Source hyperjump on every interactive bash session
+    blockinfile:
+      path: "{{ lookup('env','HOME') }}/.bashrc"
+      create: true
+      marker: "# {mark} ANSIBLE MANAGED BLOCK: hyperjump"
+      block: |
+        # Load hyperjump (interactive shells only)
+        case $- in
+          *i*) source "$HOME/.local/bin/hyperjump.sh" ;;
+        esac
+
+  - name: Ensure ~/.config/bash exists
+    file:
+      path: "{{ lookup('env','HOME') }}/.config/bash"
+      state: directory
+      mode: "0755"
+
+  - name: Install GUI bash module
+    copy:
+      src: ../files/bash/gui-module.sh
+      dest: "{{ lookup('env','HOME') }}/.config/bash/gui-module.sh"
+      mode: "0644"
+
+  - name: Source GUI module in interactive bash sessions
+    blockinfile:
+      path: "{{ lookup('env','HOME') }}/.bashrc"
+      create: true
+      marker: "# {mark} ANSIBLE MANAGED BLOCK: gui-module"
+      block: |
+        # Load GUI module (interactive shells only)
+        case $- in
+          *i*) [ -f "$HOME/.config/bash/gui-module.sh" ] && source "$HOME/.config/bash/gui-module.sh" ;;
+        esac
+
+  - name: Configure bash history behavior (time + shared + sizes)
+    blockinfile:
+      path: "{{ lookup('env','HOME') }}/.bashrc"
+      create: true
+      marker: "# {mark} ANSIBLE MANAGED BLOCK: bash-history"
+      block: |
+        # display history with time
+        export HISTTIMEFORMAT="%m/%d/%Y[%T] "
+
+        ## SHARE HISTORY BETWEEN TERMINALS
+        # Avoid duplicates
+        export HISTCONTROL=ignoredups:erasedups
+        # When the shell exits, append to the history file instead of overwriting it
+        shopt -s histappend
+
+        # for setting history length see HISTSIZE and HISTFILESIZE in bash(1)
+        export HISTSIZE=-1
+        export HISTFILESIZE=-1
+
+        history() {
+          if [ $# -eq 0 ]; then
+            # No arguments, apply custom formatting
+            command history | awk '{$1=""; print substr($0,2)}'
+          else
+            # Arguments present, run the built-in history command with the arguments
+            command history "$@"
+          fi
+        }
+  - name: Ensure ~/.bashrc sources ~/.bash_aliases
+    blockinfile:
+      path: "{{ lookup('env','HOME') }}/.bashrc"
+      create: true
+      marker: "# {mark} ANSIBLE MANAGED BLOCK: source-bash-aliases"
+      block: |
+        # Load user aliases last so they override /etc/bashrc
+        if [ -f "$HOME/.bash_aliases" ]; then
+          source "$HOME/.bash_aliases"
+        fi
+  - name: Ensure ~/.bash_profile sources ~/.bashrc
+    blockinfile:
+      path: "{{ lookup('env','HOME') }}/.bash_profile"
+      create: true
+      marker: "# {mark} ANSIBLE MANAGED BLOCK: source-bashrc"
+      block: |
+        if [ -f "$HOME/.bashrc" ]; then
+          . "$HOME/.bashrc"
+        fi
