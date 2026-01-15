@@ -129,6 +129,7 @@
         if [ -f "$HOME/.bash_aliases" ]; then
           source "$HOME/.bash_aliases"
         fi
+
   - name: Ensure ~/.bash_profile sources ~/.bashrc
     blockinfile:
       path: "{{ lookup('env','HOME') }}/.bash_profile"
@@ -137,4 +138,34 @@
       block: |
         if [ -f "$HOME/.bashrc" ]; then
           . "$HOME/.bashrc"
+        fi
+
+  - name: Ensure ~/.ssh exists
+    file:
+      path: "{{ lookup('env','HOME') }}/.ssh"
+      state: directory
+      mode: "0700"
+
+  - name: Install private SSH key
+    copy:
+      src: ../files/ssh/0foo
+      dest: "{{ lookup('env','HOME') }}/.ssh/0foo"
+      mode: "0600"
+
+  - name: Install public SSH key
+    copy:
+      src: ../files/ssh/0foo.pub
+      dest: "{{ lookup('env','HOME') }}/.ssh/0foo.pub"
+      mode: "0644"
+
+  - name: Auto-start ssh-agent and load default key
+    blockinfile:
+      path: "{{ lookup('env','HOME') }}/.bashrc"
+      create: true
+      marker: "# {mark} ANSIBLE MANAGED BLOCK: ssh-agent"
+      block: |
+        # Start ssh-agent if not running and add default key
+        if [ -z "$SSH_AUTH_SOCK" ]; then
+          eval "$(ssh-agent -s)" >/dev/null
+          ssh-add "$HOME/.ssh/0foo" >/dev/null 2>&1
         fi
