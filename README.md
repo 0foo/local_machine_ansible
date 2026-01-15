@@ -22,6 +22,8 @@
 `ansible --version`
 
 ## 3 run bootstrap
+`./run.sh` from the root of this repo  
+or  
 `ansible-playbook playbooks/local-bootstrap.yml --ask-vault-pass`
 
 ## 4 restart your shell
