@@ -10,7 +10,7 @@
 ## 2 install ansible
 
 ### nixos
-`nix-shell -p ansible`
+`nix-shell -p ansible` or add to configuration.nix or to your flake
 
 ### debian ubuntu
 `sudo apt update`
