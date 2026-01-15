@@ -13,7 +13,7 @@
 `nix-shell -p ansible` or add to configuration.nix or to your flake
 
 ### debian ubuntu
-`sudo apt update`
+`sudo apt update`  
 `sudo apt install -y ansible`
 
 ### fedora
