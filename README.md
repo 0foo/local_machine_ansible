@@ -1,6 +1,7 @@
 ## Personal User Bootstrap
 
-* restores your personal shell environment bash ssh keys aliases prompt history ssh-agent
+* restores personal shell environment 
+    * bash configure, ssh-keys, aliases, prompt config, history, etc.
 * does not modify any system configuration
 
 ## 1 clone the repo
