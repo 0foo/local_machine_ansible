@@ -30,15 +30,15 @@ or
 `exec bash -l`
 
 ## 5 verify environment
-`type ll`
-`ssh-add -l`
-`parse_git_branch`
-`history`
+`type ll`   
+`ssh-add -l`   
+`parse_git_branch`  
+`history`  
 
 ## rerun anytime
-`cd ~/ansible/personal`
-`ansible-playbook playbooks/local-bootstrap.yml --ask-vault-pass`
+`cd ~/ansible/personal`  
+`ansible-playbook playbooks/local-bootstrap.yml --ask-vault-pass`  
 
 ## vault maintenance
-`ansible-vault edit files/ssh/id_ed25519`
-`ansible-vault rekey files/ssh/id_ed25519`
+`ansible-vault edit files/ssh/0foo`  
+`ansible-vault rekey files/ssh/0foo`  
