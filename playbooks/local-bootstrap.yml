@@ -130,16 +130,6 @@
           source "$HOME/.bash_aliases"
         fi
 
-  - name: Ensure ~/.bash_profile sources ~/.bashrc
-    blockinfile:
-      path: "{{ lookup('env','HOME') }}/.bash_profile"
-      create: true
-      marker: "# {mark} ANSIBLE MANAGED BLOCK: source-bashrc"
-      block: |
-        if [ -f "$HOME/.bashrc" ]; then
-          . "$HOME/.bashrc"
-        fi
-
   - name: Ensure ~/.ssh exists
     file:
       path: "{{ lookup('env','HOME') }}/.ssh"
