@@ -5,13 +5,13 @@
 * does not modify any system configuration
 
 ## 1 clone the repo
-`git clone <your-repo-url> ~/ansible`
+`git clone <your-repo-url> ~/ansible`  
 `cd ~/ansible/personal`
 
 ## 2 install ansible
 
 ### nixos
-`nix-shell -p ansible` or add to configuration.nix or to your flake
+`nix-shell -p ansible` or add to configuration files
 
 ### debian ubuntu
 `sudo apt update`  
