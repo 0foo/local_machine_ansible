@@ -1,0 +1,1 @@
+ansible-playbook playbooks/ssh_key.yml --ask-vault-pass

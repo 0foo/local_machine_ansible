@@ -1,0 +1,44 @@
+# playbooks/ssh-keys.yml
+---
+- name: Configure SSH keys and ssh-agent
+  hosts: nixos
+  become: false
+  gather_facts: false
+
+  vars:
+    # ssh key filenames (stored in this ansible repo under files/ssh/)
+    ssh_key_private_src: "../files/ssh/labkey"
+    ssh_key_public_src: "../files/ssh/labkey.pub"
+    ssh_key_private_dest: "{{ lookup('env','HOME') }}/.ssh/labkey"
+    ssh_key_public_dest: "{{ lookup('env','HOME') }}/.ssh/labkey.pub"
+
+  tasks:
+  - name: Ensure ~/.ssh exists
+    file:
+      path: "{{ lookup('env','HOME') }}/.ssh"
+      state: directory
+      mode: "0700"
+
+  - name: Install private SSH key
+    copy:
+      src: "{{ ssh_key_private_src }}"
+      dest: "{{ ssh_key_private_dest }}"
+      mode: "0600"
+
+  - name: Install public SSH key
+    copy:
+      src: "{{ ssh_key_public_src }}"
+      dest: "{{ ssh_key_public_dest }}"
+      mode: "0644"
+
+  - name: Auto-start ssh-agent and load labkey key
+    blockinfile:
+      path: "{{ lookup('env','HOME') }}/.bashrc"
+      create: true
+      marker: "# {mark} ANSIBLE MANAGED BLOCK: ssh-agent"
+      block: |
+        # Start ssh-agent if not running and add labkey key
+        if [ -z "$SSH_AUTH_SOCK" ]; then
+          eval "$(ssh-agent -s)" >/dev/null
+          ssh-add "$HOME/.ssh/labkey" >/dev/null 2>&1
+        fi
