@@ -1,1 +1,1 @@
-ansible-playbook playbooks/local-bootstrap.yml --ask-vault-pass
+ansible-playbook playbooks/local-bootstrap.yml
