@@ -25,7 +25,7 @@
 ## 3 run bootstrap
 `./run.sh` from the root of this repo  
 or  
-`ansible-playbook playbooks/local-bootstrap.yml --ask-vault-pass`
+`ansible-playbook playbooks/local-bootstrap.yml`
 
 ## 4 restart your shell
 `exec bash -l`
@@ -38,8 +38,4 @@ or
 
 ## rerun anytime
 `cd ~/ansible/personal`  
-`ansible-playbook playbooks/local-bootstrap.yml --ask-vault-pass`  
-
-## vault maintenance
-`ansible-vault edit files/ssh/0foo`  
-`ansible-vault rekey files/ssh/0foo`  
+`ansible-playbook playbooks/local-bootstrap.yml`  
