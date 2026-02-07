@@ -44,6 +44,9 @@
           : > ~/.bash_history
           history -c
         }
+        http () {
+          python3 -m http.server "${1:-8000}"
+        }
 
   - name: Ensure local bin directory exists
     file:
