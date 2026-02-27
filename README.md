@@ -1,7 +1,7 @@
 ## Personal User Bootstrap
 
 * restores personal shell environment 
-    * bash configure, ssh-keys, aliases, prompt config, history, etc.
+    * bash configure, aliases, prompt config, history, etc.
 * does not modify any system configuration
 
 ## 1 clone the repo
@@ -32,7 +32,6 @@ or
 
 ## 5 verify environment
 `type ll`   
-`ssh-add -l`   
 `parse_git_branch`  
 `history`  
 
