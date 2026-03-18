@@ -21,17 +21,15 @@ set_PS1() {
   local IRed="\[\033[0;91m\]"
   local IGreen="\[\033[0;92m\]"
   local IYellow="\[\033[0;93m\]"
-  local ICyan="\[\033[0;96m\]"
   local IWhite="\[\033[0;97m\]"
 
   # Prompt variables
   local PathShort="\w"
   local User="\u"
-  local Host="\h"
   local Git_branch="\$(parse_git_branch)"
 
-  # Updated: added ${Host} after the User
-  local ps1_terminal_string="${IYellow}${User}@${ICyan}${Host} ${IRed}${PathShort} ${IGreen}${Git_branch} ${IWhite}: ${Color_Off}"
+  # Example: user path (branch): 
+  local ps1_terminal_string="${IYellow}${User} ${IRed}${PathShort} ${IGreen}${Git_branch} ${IWhite}: ${Color_Off}"
   export PS1="$ps1_terminal_string"
 }
 
