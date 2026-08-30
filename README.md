@@ -73,6 +73,7 @@ Run against everything in the inventory:
 ./run.sh                                      # local-bootstrap.yml only
 ansible-playbook playbooks/local-bootstrap.yml
 ansible-playbook playbooks/debian-packages.yml
+ansible-playbook playbooks/debian-ssh.yml
 ansible-playbook playbooks/debian-gui-packages.yml   # opt-in, GUI hosts only
 ```
 
@@ -80,6 +81,23 @@ Run against a single host:
 ```bash
 ansible-playbook playbooks/local-bootstrap.yml --limit borg-host
 ansible-playbook playbooks/debian-packages.yml --limit borg-host --ask-become-pass
+ansible-playbook playbooks/debian-ssh.yml --limit borg-host
+```
+
+Run against a specific user on a multi-account host (e.g. both `root` and `nick` on the same physical machine):
+```bash
+ansible-playbook playbooks/local-bootstrap.yml --limit precision-5680-2023-nick
+ansible-playbook playbooks/local-bootstrap.yml --limit precision-5680-2023-root
+```
+
+Run as root on a host using `ansible_connection=local` (where `ansible_user` is ignored — see note above):
+```bash
+sudo -H ansible-playbook playbooks/local-bootstrap.yml --limit localhost
+```
+
+Syntax-check a playbook without running it:
+```bash
+ansible-playbook playbooks/local-bootstrap.yml --syntax-check
 ```
 
 Rerunning any playbook is safe — tasks are idempotent (package/`creates` checks, `blockinfile` markers, etc.).
