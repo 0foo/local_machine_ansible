@@ -90,9 +90,9 @@ ansible-playbook playbooks/local-bootstrap.yml --limit precision-5680-2023-nick
 ansible-playbook playbooks/local-bootstrap.yml --limit precision-5680-2023-root
 ```
 
-Run as root on a host using `ansible_connection=local` (where `ansible_user` is ignored — see note above):
+Run as root on a host reached via `ansible_connection=local` (where `ansible_user` is ignored, since tasks run as whichever OS user invoked `ansible-playbook`):
 ```bash
-sudo -H ansible-playbook playbooks/local-bootstrap.yml --limit localhost
+sudo -H ansible-playbook playbooks/local-bootstrap.yml --limit <local-host-alias>
 ```
 
 Syntax-check a playbook without running it:
