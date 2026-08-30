@@ -1,0 +1,103 @@
+- name: Install core packages on Debian-based systems
+  hosts: debian
+  become: true
+
+  tasks:
+  - name: Update apt cache
+    apt:
+      update_cache: true
+      cache_valid_time: 3600
+
+  - name: Install git
+    apt:
+      name: git
+      state: present
+
+  - name: Install utility packages
+    apt:
+      name:
+      - openssl
+      - lsof
+      - net-tools
+      - parted
+      - speedtest-cli
+      - tree
+      - tcpdump
+      - rclone
+      state: present
+
+  - name: Install Docker Engine
+    apt:
+      name: docker.io
+      state: present
+
+  - name: Add user to docker group
+    user:
+      name: "{{ ansible_user_id }}"
+      groups: docker
+      append: true
+
+  - name: Download Tailscale apt signing key
+    get_url:
+      url: "https://pkgs.tailscale.com/stable/debian/{{ ansible_distribution_release }}.noarmor.gpg"
+      dest: /usr/share/keyrings/tailscale-archive-keyring.gpg
+      mode: "0644"
+
+  - name: Add Tailscale apt repository
+    get_url:
+      url: "https://pkgs.tailscale.com/stable/debian/{{ ansible_distribution_release }}.tailscale-keyring.list"
+      dest: /etc/apt/sources.list.d/tailscale.list
+      mode: "0644"
+    register: tailscale_repo
+
+  - name: Update apt cache after adding Tailscale repo
+    apt:
+      update_cache: true
+    when: tailscale_repo.changed
+
+  - name: Install tailscale
+    apt:
+      name: tailscale
+      state: present
+
+  - name: Enable and start tailscaled service
+    service:
+      name: tailscaled
+      state: started
+      enabled: true
+
+  - name: Check if AWS CLI is already installed
+    stat:
+      path: /usr/local/bin/aws
+    register: aws_cli_installed
+
+  - name: Download AWS CLI v2 installer
+    get_url:
+      url: https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
+      dest: /tmp/awscliv2.zip
+      mode: "0644"
+    when: not aws_cli_installed.stat.exists
+
+  - name: Unarchive AWS CLI installer
+    unarchive:
+      src: /tmp/awscliv2.zip
+      dest: /tmp
+      remote_src: true
+    when: not aws_cli_installed.stat.exists
+
+  - name: Run AWS CLI installer
+    command: /tmp/aws/install
+    when: not aws_cli_installed.stat.exists
+
+  - name: Install Node.js and npm
+    apt:
+      name:
+      - nodejs
+      - npm
+      state: present
+
+  - name: Install Claude Code CLI via npm
+    community.general.npm:
+      name: "@anthropic-ai/claude-code"
+      global: true
+      state: present

@@ -1,0 +1,102 @@
+- name: Install GUI packages on Debian-based systems
+  hosts: debian
+  become: true
+
+  tasks:
+  - name: Update apt cache
+    apt:
+      update_cache: true
+      cache_valid_time: 3600
+
+  - name: Ensure /etc/apt/keyrings exists
+    file:
+      path: /etc/apt/keyrings
+      state: directory
+      mode: "0755"
+
+  # --- VS Code ---
+  - name: Add Microsoft apt signing key
+    shell: curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /etc/apt/keyrings/microsoft.gpg
+    args:
+      creates: /etc/apt/keyrings/microsoft.gpg
+
+  - name: Add VS Code apt repository
+    apt_repository:
+      repo: "deb [arch=amd64,arm64,armhf signed-by=/etc/apt/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/code stable main"
+      filename: vscode
+      update_cache: true
+
+  - name: Install VS Code
+    apt:
+      name: code
+      state: present
+
+  # --- Google Chrome ---
+  - name: Add Google Chrome apt signing key
+    shell: curl -fsSL https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /etc/apt/keyrings/google-chrome.gpg
+    args:
+      creates: /etc/apt/keyrings/google-chrome.gpg
+
+  - name: Add Google Chrome apt repository
+    apt_repository:
+      repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main"
+      filename: google-chrome
+      update_cache: true
+
+  - name: Install Google Chrome
+    apt:
+      name: google-chrome-stable
+      state: present
+
+  # --- Spotify ---
+  - name: Add Spotify apt signing key
+    shell: curl -fsSL https://download.spotify.com/debian/pubkey_6224F9941A8AA6D1.gpg | gpg --dearmor -o /etc/apt/keyrings/spotify.gpg
+    args:
+      creates: /etc/apt/keyrings/spotify.gpg
+
+  - name: Add Spotify apt repository
+    apt_repository:
+      repo: "deb [signed-by=/etc/apt/keyrings/spotify.gpg] http://repository.spotify.com stable non-free"
+      filename: spotify
+      update_cache: true
+
+  - name: Install Spotify
+    apt:
+      name: spotify-client
+      state: present
+
+  # --- snapd (for Slack, Teams, JetBrains apps) ---
+  - name: Install snapd
+    apt:
+      name: snapd
+      state: present
+
+  - name: Ensure snapd service is enabled and started
+    service:
+      name: snapd.socket
+      state: started
+      enabled: true
+
+  - name: Install Slack (snap)
+    community.general.snap:
+      name: slack
+      state: present
+
+  # Microsoft no longer ships a native Teams client for Linux; this is the
+  # community-maintained replacement.
+  - name: Install Microsoft Teams (teams-for-linux, snap)
+    community.general.snap:
+      name: teams-for-linux
+      state: present
+
+  - name: Install JetBrains IntelliJ IDEA Ultimate (snap)
+    community.general.snap:
+      name: intellij-idea-ultimate
+      classic: true
+      state: present
+
+  - name: Install JetBrains DataGrip (snap)
+    community.general.snap:
+      name: datagrip
+      classic: true
+      state: present
