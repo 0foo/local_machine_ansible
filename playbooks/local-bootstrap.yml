@@ -1,4 +1,5 @@
 - name: Configure local user environment
+  # runs on every host in the inventory, any OS - user-level dotfiles only, no system config
   hosts: all
   become: false
 
