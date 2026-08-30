@@ -1,5 +1,5 @@
 - name: Configure local user environment
-  hosts: nixos
+  hosts: all
   become: false
 
   tasks:
@@ -8,19 +8,19 @@
       path: "{{ item }}"
       state: directory
     loop:
-    - "{{ lookup('env','HOME') }}/bin"
-    - "{{ lookup('env','HOME') }}/projects"
-    - "{{ lookup('env','HOME') }}/.config"
+    - "{{ ansible_facts['env']['HOME'] }}/bin"
+    - "{{ ansible_facts['env']['HOME'] }}/projects"
+    - "{{ ansible_facts['env']['HOME'] }}/.config"
 
   - name: Install user dotfiles
     copy:
       src: ../files/bashrc
-      dest: "{{ lookup('env','HOME') }}/.bashrc"
+      dest: "{{ ansible_facts['env']['HOME'] }}/.bashrc"
       mode: "0644"
 
   - name: Add bash functions and aliases
     blockinfile:
-      path: "{{ lookup('env','HOME') }}/.bash_aliases"
+      path: "{{ ansible_facts['env']['HOME'] }}/.bash_aliases"
       create: true
       marker: "# {mark} ANSIBLE MANAGED BLOCK: bash functions"
       block: |
@@ -50,19 +50,19 @@
 
   - name: Ensure local bin directory exists
     file:
-      path: "{{ lookup('env','HOME') }}/.local/bin"
+      path: "{{ ansible_facts['env']['HOME'] }}/.local/bin"
       state: directory
       mode: "0755"
 
   - name: Copy hyperjump script into ~/.local/bin
     copy:
       src: ../files/hyperjump/hyperjump.sh
-      dest: "{{ lookup('env','HOME') }}/.local/bin/hyperjump.sh"
+      dest: "{{ ansible_facts['env']['HOME'] }}/.local/bin/hyperjump.sh"
       mode: "0755"
 
   - name: Source hyperjump on every interactive bash session
     blockinfile:
-      path: "{{ lookup('env','HOME') }}/.bashrc"
+      path: "{{ ansible_facts['env']['HOME'] }}/.bashrc"
       create: true
       marker: "# {mark} ANSIBLE MANAGED BLOCK: hyperjump"
       block: |
@@ -73,19 +73,19 @@
 
   - name: Ensure ~/.config/bash exists
     file:
-      path: "{{ lookup('env','HOME') }}/.config/bash"
+      path: "{{ ansible_facts['env']['HOME'] }}/.config/bash"
       state: directory
       mode: "0755"
 
   - name: Install GUI bash module
     copy:
       src: ../files/bash/gui-module.sh
-      dest: "{{ lookup('env','HOME') }}/.config/bash/gui-module.sh"
+      dest: "{{ ansible_facts['env']['HOME'] }}/.config/bash/gui-module.sh"
       mode: "0644"
 
   - name: Source GUI module in interactive bash sessions
     blockinfile:
-      path: "{{ lookup('env','HOME') }}/.bashrc"
+      path: "{{ ansible_facts['env']['HOME'] }}/.bashrc"
       create: true
       marker: "# {mark} ANSIBLE MANAGED BLOCK: gui-module"
       block: |
@@ -96,7 +96,7 @@
 
   - name: Configure bash history behavior (time + shared + sizes)
     blockinfile:
-      path: "{{ lookup('env','HOME') }}/.bashrc"
+      path: "{{ ansible_facts['env']['HOME'] }}/.bashrc"
       create: true
       marker: "# {mark} ANSIBLE MANAGED BLOCK: bash-history"
       block: |
@@ -124,7 +124,7 @@
         }
   - name: Ensure ~/.bashrc sources ~/.bash_aliases
     blockinfile:
-      path: "{{ lookup('env','HOME') }}/.bashrc"
+      path: "{{ ansible_facts['env']['HOME'] }}/.bashrc"
       create: true
       marker: "# {mark} ANSIBLE MANAGED BLOCK: source-bash-aliases"
       block: |
