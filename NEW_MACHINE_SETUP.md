@@ -53,17 +53,7 @@ For a cloud instance, once Tailscale SSH is confirmed working, cut off the publi
 
 Tailscale itself doesn't need any inbound ports open publicly (it dials out to the coordination server and relays over DERP if a direct path isn't available), so it's safe to close everything on the public interface.
 
-**a. OS-level firewall (`ufw`)** — allow all traffic on the `tailscale0` interface, deny everything else inbound:
-```bash
-sudo apt install -y ufw
-sudo ufw default deny incoming
-sudo ufw default allow outgoing
-sudo ufw allow in on tailscale0
-sudo ufw enable
-```
-Double-check your active session survives (`ufw status`) before closing the terminal — you should still be able to `ssh <short-name>` over Tailscale afterward.
-
-**b. Provider-level firewall (defense in depth)** — also drop all public inbound at the cloud provider's firewall/security group, in front of the VM's NIC. Hetzner Cloud firewalls default-deny anything not explicitly allowed, so creating one with zero inbound rules and applying it is enough (`hcloud` CLI):
+Drop all public inbound at the cloud provider's firewall/security group, in front of the VM's NIC. Hetzner Cloud firewalls default-deny anything not explicitly allowed, so creating one with zero inbound rules and applying it is enough (`hcloud` CLI):
 ```bash
 hcloud firewall create --name tailnet-only
 hcloud firewall apply-to-resource tailnet-only --type server --server new-host
