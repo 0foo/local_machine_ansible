@@ -25,6 +25,7 @@
       - tree
       - tcpdump
       - rclone
+      - tmux
       state: present
 
   - name: Install Docker Engine
