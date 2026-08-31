@@ -29,7 +29,7 @@
         alias ll='ls -lahS'
 
         git_go() {
-          git add . && git commit -m "save state" && git push
+          git add . && git commit -m "save state" && git push -u origin HEAD
         }
 
         git_ssh_key_generate() {
