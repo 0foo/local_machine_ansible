@@ -26,6 +26,7 @@
       - tcpdump
       - rclone
       - tmux
+      - git-lfs
       state: present
 
   - name: Install Docker Engine
