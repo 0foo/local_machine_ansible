@@ -32,6 +32,10 @@
           git add . && git commit -m "save state" && git push -u origin HEAD
         }
 
+        git_clear_cache() {
+          git rm -r --cached . && git add . && git commit -m "Clear Git cache and update untracked files"
+        }
+
         git_ssh_key_generate() {
           ssh-keygen -t ed25519
         }
