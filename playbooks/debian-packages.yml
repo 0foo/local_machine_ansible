@@ -27,6 +27,7 @@
       - rclone
       - tmux
       - git-lfs
+      - sudo
       state: present
 
   - name: Install Docker Engine
