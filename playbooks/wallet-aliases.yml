@@ -1,0 +1,166 @@
+- name: Configure crypto wallet bash aliases
+  # user-level dotfiles only, no system config - requires foundry (cast) and the
+  # my-wallet account to already be set up on this host
+  hosts: scrooge-host
+  become: false
+
+  tasks:
+  - name: Add wallet aliases and functions
+    blockinfile:
+      path: "{{ ansible_facts['env']['HOME'] }}/.bash_aliases"
+      create: true
+      marker: "# {mark} ANSIBLE MANAGED BLOCK: wallet-aliases"
+      block: |
+        # Wallet basics
+        alias my-addr='cast wallet address --account my-wallet'
+
+        # ETH balance (mainnet)
+        # usage: eth-bal [address]  (address defaults to my-wallet, prompting for the keystore password)
+        eth-bal() {
+          local addr=${1:-$(cast wallet address --account my-wallet)}
+          cast balance "$addr" --rpc-url https://ethereum-rpc.publicnode.com --ether
+        }
+
+        # ETH balance (Base)
+        # usage: base-eth-bal [address]
+        base-eth-bal() {
+          local addr=${1:-$(cast wallet address --account my-wallet)}
+          cast balance "$addr" --rpc-url https://mainnet.base.org --ether
+        }
+
+        # USDC balances
+        # USDC on Ethereum mainnet
+        # usage: usdc-bal [address]
+        usdc-bal() {
+          local addr=${1:-$(cast wallet address --account my-wallet)}
+          local raw=$(cast call 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48 \
+            "balanceOf(address)(uint256)" "$addr" \
+            --rpc-url https://ethereum-rpc.publicnode.com | awk '{print $1}')
+          cast --to-unit "$raw" 6
+        }
+
+        # USDC on Base
+        # usage: base-usdc-bal [address]
+        base-usdc-bal() {
+          local addr=${1:-$(cast wallet address --account my-wallet)}
+          local raw=$(cast call 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913 \
+            "balanceOf(address)(uint256)" "$addr" \
+            --rpc-url https://mainnet.base.org | awk '{print $1}')
+          cast --to-unit "$raw" 6
+        }
+
+        # Generic token balance checker (any chain/token)
+        # usage: token-bal <token_contract> <rpc_url> [decimals]
+        token-bal() {
+          local contract=$1
+          local rpc=$2
+          local decimals=${3:-18}
+          local raw=$(cast call "$contract" "balanceOf(address)(uint256)" \
+            $(cast wallet address --account my-wallet) --rpc-url "$rpc" | awk '{print $1}')
+          cast --to-unit "$raw" "$decimals"
+        }
+
+        # Current ETH/USD price, read from Chainlink's on-chain price feed (no
+        # external API dependency - just another RPC read via cast).
+        eth-usd-price() {
+          local raw=$(cast call 0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419 \
+            "latestAnswer()(int256)" --rpc-url https://ethereum-rpc.publicnode.com | awk '{print $1}')
+          awk -v r="$raw" 'BEGIN { printf "%.2f", r / 1e8 }'
+        }
+
+        # usage: eth-to-usd <eth_amount> [price]  (price defaults to a fresh eth-usd-price lookup)
+        eth-to-usd() {
+          local price=${2:-$(eth-usd-price)}
+          awk -v e="$1" -v p="$price" 'BEGIN { printf "%.2f", e * p }'
+        }
+
+        # Quick "check everything" summary
+        # Derives the address once (single keystore password prompt) and reuses
+        # it for every balance check instead of re-decrypting the keystore per line.
+        wallet-summary() {
+          local addr=$(cast wallet address --account my-wallet)
+          local price=$(eth-usd-price)
+          local eth_mainnet=$(eth-bal "$addr")
+          local eth_base=$(base-eth-bal "$addr")
+          echo "Address: $addr"
+          echo "ETH (mainnet): ${eth_mainnet} ETH (\$$(eth-to-usd "$eth_mainnet" "$price") USD)"
+          echo "ETH (Base):    ${eth_base} ETH (\$$(eth-to-usd "$eth_base" "$price") USD)"
+          echo "USDC (mainnet): $(usdc-bal "$addr") USDC"
+          echo "USDC (Base):    $(base-usdc-bal "$addr") USDC"
+        }
+
+        # Gas price check
+        gas-price() {
+          echo "Gas price (mainnet): $(cast --to-unit $(cast gas-price --rpc-url https://ethereum-rpc.publicnode.com) gwei) gwei/gas"
+        }
+        base-gas-price() {
+          echo "Gas price (Base):    $(cast --to-unit $(cast gas-price --rpc-url https://mainnet.base.org) gwei) gwei/gas"
+        }
+
+        # Estimated fee to send a plain ETH transfer.
+        # A plain transfer always costs a fixed 21000 gas, so the amount doesn't
+        # change the fee - it's only used to label the output. Simulated via
+        # eth_estimateGas against a throwaway address, so no signing/password needed.
+        # usage: eth-transfer-cost <eth_amount>
+        eth-transfer-cost() {
+          local amount=$1
+          if [ -z "$amount" ]; then
+            echo "usage: eth-transfer-cost <eth_amount>" >&2
+            return 1
+          fi
+          local fee=$(cast estimate 0x000000000000000000000000000000000000dEaD \
+            --value "${amount}ether" --rpc-url https://ethereum-rpc.publicnode.com --cost)
+          echo "Estimated fee to transfer ${amount} ETH (mainnet): ${fee} ETH (\$$(eth-to-usd "$fee") USD)"
+        }
+
+        # usage: base-eth-transfer-cost <eth_amount>
+        base-eth-transfer-cost() {
+          local amount=$1
+          if [ -z "$amount" ]; then
+            echo "usage: base-eth-transfer-cost <eth_amount>" >&2
+            return 1
+          fi
+          local fee=$(cast estimate 0x000000000000000000000000000000000000dEaD \
+            --value "${amount}ether" --rpc-url https://mainnet.base.org --cost)
+          echo "Estimated fee to transfer ${amount} ETH (Base): ${fee} ETH (\$$(eth-to-usd "$fee") USD)"
+        }
+
+        # Estimated fee to send a USDC (ERC20) transfer.
+        # Unlike a plain ETH transfer, gas here depends on contract execution (and
+        # on whether the recipient already holds a balance), so it's simulated with
+        # the real sender address rather than a fixed 21000. That needs the address,
+        # not a signature, so it still only costs a single keystore password prompt
+        # (skip it by passing the address as the 2nd arg).
+        # usage: usdc-transfer-cost <usdc_amount> [from_address]
+        usdc-transfer-cost() {
+          local amount=$1
+          if [ -z "$amount" ]; then
+            echo "usage: usdc-transfer-cost <usdc_amount> [from_address]" >&2
+            return 1
+          fi
+          local from=${2:-$(cast wallet address --account my-wallet)}
+          local raw=$(cast parse-units "$amount" 6)
+          local fee=$(cast estimate 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48 \
+            "transfer(address,uint256)" 0x000000000000000000000000000000000000dEaD "$raw" \
+            --from "$from" --rpc-url https://ethereum-rpc.publicnode.com --cost)
+          echo "Estimated fee to transfer ${amount} USDC (mainnet): ${fee} ETH (\$$(eth-to-usd "$fee") USD)"
+        }
+
+        # usage: base-usdc-transfer-cost <usdc_amount> [from_address]
+        base-usdc-transfer-cost() {
+          local amount=$1
+          if [ -z "$amount" ]; then
+            echo "usage: base-usdc-transfer-cost <usdc_amount> [from_address]" >&2
+            return 1
+          fi
+          local from=${2:-$(cast wallet address --account my-wallet)}
+          local raw=$(cast parse-units "$amount" 6)
+          local fee=$(cast estimate 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913 \
+            "transfer(address,uint256)" 0x000000000000000000000000000000000000dEaD "$raw" \
+            --from "$from" --rpc-url https://mainnet.base.org --cost)
+          echo "Estimated fee to transfer ${amount} USDC (Base): ${fee} ETH (\$$(eth-to-usd "$fee") USD)"
+        }
+
+        # Etherscan/Blockscan quick links
+        etherscan-me() { echo "https://etherscan.io/address/$(my-addr)"; }
+        basescan-me()  { echo "https://basescan.org/address/$(my-addr)"; }

@@ -1,0 +1,32 @@
+- name: Install GitHub SSH key and config entry
+  # user-level ~/.ssh only, no system config - private key comes from the
+  # vaulted github_ssh_private_key var in group_vars/all/vault.yml
+  hosts: all
+  become: false
+
+  tasks:
+  - name: Ensure ~/.ssh exists
+    file:
+      path: "{{ ansible_facts['env']['HOME'] }}/.ssh"
+      state: directory
+      mode: "0700"
+
+  - name: Install GitHub private key
+    copy:
+      content: "{{ github_ssh_private_key }}"
+      dest: "{{ ansible_facts['env']['HOME'] }}/.ssh/id_ed25519_github"
+      mode: "0600"
+    no_log: true
+
+  - name: Add GitHub Host entry to ~/.ssh/config
+    blockinfile:
+      path: "{{ ansible_facts['env']['HOME'] }}/.ssh/config"
+      create: true
+      mode: "0600"
+      marker: "# {mark} ANSIBLE MANAGED BLOCK: ssh-key-github"
+      block: |
+        Host github.com
+          HostName github.com
+          User git
+          IdentityFile ~/.ssh/id_ed25519_github
+          IdentitiesOnly yes

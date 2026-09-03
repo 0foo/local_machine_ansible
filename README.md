@@ -13,10 +13,13 @@ playbooks/
   local-bootstrap.yml          # dotfiles/shell env — runs on ALL hosts, any OS
   debian-packages.yml          # CLI packages — Debian/Ubuntu hosts only
   debian-gui-packages.yml      # GUI apps — Debian/Ubuntu hosts only, opt-in
+  ssh-key-github.yml           # installs a vaulted GitHub SSH key — runs on ALL hosts
 files/                         # source files copied out by local-bootstrap.yml
   bashrc
   bash/gui-module.sh
   hyperjump/hyperjump.sh
+inventory/group_vars/all/vault.yml       # ansible-vault-encrypted secrets (e.g. the GitHub SSH key)
+.vault_pass                    # gitignored vault password file (see Secrets/Vault below)
 run.sh                         # convenience wrapper for local-bootstrap.yml
 ```
 
@@ -45,6 +48,30 @@ Also targets `[debian]`, but is **not** run by default — run it explicitly on 
 - JetBrains IntelliJ IDEA Ultimate and DataGrip via snap (`classic` confinement; Ultimate requires a license)
 
 `snapd` is installed/enabled as part of this playbook for the snap-based installs.
+
+### `ssh-key-github.yml`
+Targets `hosts: all`, `become: false` (writes only to the connecting user's `~/.ssh`). Installs a GitHub deploy/personal-use SSH key:
+- writes the private key to `~/.ssh/id_ed25519_github` (mode `0600`)
+- adds a `Host github.com` block to `~/.ssh/config` (`HostName github.com`, `User git`, `IdentityFile ~/.ssh/id_ed25519_github`)
+
+The private key itself lives encrypted in `inventory/group_vars/all/vault.yml` as the `github_ssh_private_key` variable — see **Secrets/Vault** below.
+
+## Secrets / Vault
+
+Secret values (currently just `github_ssh_private_key`) are stored as individual `ansible-vault`-encrypted strings inside `inventory/group_vars/all/vault.yml`, so the surrounding YAML stays readable/diffable while the secret itself stays opaque. This repo is configured (via `vault_password_file` in `ansible.cfg`) to read the vault password from a local `.vault_pass` file, which is gitignored and never committed — back it up yourself (e.g. a password manager).
+
+Add or update a vaulted secret:
+```bash
+ansible-vault encrypt_string --stdin-name 'variable_name' < path/to/secret > /tmp/out.yml
+# paste/merge the resulting "variable_name: !vault |" block into inventory/group_vars/all/vault.yml
+```
+
+View/edit the whole vault file in place:
+```bash
+ansible-vault edit inventory/group_vars/all/vault.yml
+```
+
+If you don't want a `.vault_pass` file at all, delete it and remove `vault_password_file` from `ansible.cfg` — playbooks that need vaulted vars will then prompt via `--ask-vault-pass` on every run instead.
 
 ## Inventory
 
@@ -77,6 +104,7 @@ ansible-playbook playbooks/local-bootstrap.yml
 ansible-playbook playbooks/debian-packages.yml
 ansible-playbook playbooks/debian-ssh.yml
 ansible-playbook playbooks/debian-gui-packages.yml   # opt-in, GUI hosts only
+ansible-playbook playbooks/ssh-key-github.yml
 ```
 
 Run against a single host:
